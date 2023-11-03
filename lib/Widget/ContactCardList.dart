@@ -1,20 +1,21 @@
+import 'package:MySMS/Model/Contact.dart';
 import 'package:MySMS/Widget/Extensions.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-
 import 'CustomTheme.dart';
 
 class ContactcardList extends StatefulWidget {
-  ContactcardList({Key? key, required this.number}) : super(key: key);
-  String number;
-
+  ContactcardList({Key? key, required this.contact}) : super(key: key);
+  // String number;
+  Contact? contact;
   @override
   State<ContactcardList> createState() => _ContactcardListState();
 }
 
 class _ContactcardListState extends State<ContactcardList> {
   bool isChecked = true; // Initialize the checkbox to be checked.
+
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +41,7 @@ class _ContactcardListState extends State<ContactcardList> {
                           Expanded(
                             flex: 8,
                             child: Text(
-                              widget.number,
+                              widget.contact!.number.toString(),
                               style: TextStyle(
                                   fontSize: plain_text_size.toDouble(),
                                   fontWeight: FontWeight.w500),
@@ -59,11 +60,24 @@ class _ContactcardListState extends State<ContactcardList> {
                                   alignment: Alignment.center,
                                   child: Checkbox(
                                     activeColor: theme_color.toColor(),
-                                    value: isChecked,
+                                    value:widget.contact!.value??false ,
                                     shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(4)),
                                     onChanged: (bool? value) {
-                                      isChecked = value ?? false;
+                                      (widget.contact!.value=value!);
+                                      setState(() {
+
+                                        //   isChecked = !isChecked;
+                                      //  isChecked = value ?? false;
+                                      });
+                                      // if (isChecked) {
+                                      //   checkedContacts
+                                      //       .add(widget.number);
+                                      // }
+                                      // if (!isChecked) {
+                                      //   checkedContacts.remove(
+                                      //       widget.number);
+                                      // }
                                     },
                                   ),
                                 ),

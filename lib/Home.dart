@@ -6,6 +6,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sms/flutter_sms.dart';
+import 'package:gap/gap.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert' as convert;
 
@@ -23,6 +24,7 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   List<Contact> contactlist = [];
+  Set<Contact> selectedContacts = Set<Contact>();
   bool _isloaded = true;
   String result = "";
   final scrollController = ScrollController();
@@ -30,14 +32,20 @@ class _HomeState extends State<Home> {
 
   Future<void> getNumberfromsheet() async {
     var rwa = await http.get(Uri.parse(
-        "https://script.googleusercontent.com/macros/echo?user_content_key=1O4VdMTU0ofzC6kYxsYmgJ6BnkbuiosqPCE43qf04ccj3GtBnj4KSCnp23sLrZHzF1SNusF7umTNO8dCIKemfQ9bBHxK-dS9m5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnE92VXYoEhvqwzJKJ1__vlV6xhc-Rok86ctlpvHObvKM80EokVhm6F3JLF29Y4c18Itd0fBTlxX34TQT9im298ZAHa7lkDWJvw&lib=MXnoYrom9SgRob9jUQnXiO5GHEo5vm62a"));
+        "https://script.googleusercontent.com/macros/echo?user_content_key=WuWAuaYlVfPguTwyjta8jGIJhZ-z3XIvzDVzd1AS325-G7JJwgIIlFYvIthZK9Y6II8INpPlkFzZSD3rCUOJmdGCKNpthAMem5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnCljp9ZL91Q6YMVvUbzPAZgMnC91JAbfX-HycAsPz-FZ0DayXmSLGdhJt7xGtGDTAgqR6L0T1gsX3691yxXmxnX9z9ymcaMXCw&lib=MXnoYrom9SgRob9jUQnXiO5GHEo5vm62a"));
+    //
+    // https://script.googleusercontent.com/macros/echo?user_content_key=1O4VdMTU0ofzC6kYxsYmgJ6BnkbuiosqPCE43qf04ccj3GtBnj4KSCnp23sLrZHzF1SNusF7umTNO8dCIKemfQ9bBHxK-dS9m5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnE92VXYoEhvqwzJKJ1__vlV6xhc-Rok86ctlpvHObvKM80EokVhm6F3JLF29Y4c18Itd0fBTlxX34TQT9im298ZAHa7lkDWJvw&lib=MXnoYrom9SgRob9jUQnXiO5GHEo5vm62a
     var jsonnumber = convert.jsonDecode(rwa.body);
+    contactlist = [];
     jsonnumber.forEach((element) {
-      Contact contact = Contact(number: element['user_contact'].toString());
+      Contact contact = Contact(
+          number: element['user_contact'].toString(),
+          value: element['check_box']);
       contactlist.add(contact);
     });
     setState(() {
-      contactlist = contactlist;
+      _isloaded = false;
+      // contactlist = contactlist;
     });
   }
 
@@ -51,7 +59,6 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-
           title: Padding(
             padding: const EdgeInsets.only(top: 10.0, bottom: 5.0),
             child: Text(
@@ -72,26 +79,33 @@ class _HomeState extends State<Home> {
         body: Column(
           children: [
             Expanded(
-              child: Container(
-                  margin: EdgeInsets.all(5),
-                  child: contactlist.isEmpty
-                      ? Padding(
-                          padding: const EdgeInsets.all(18.0),
-                          child: Center(
-                            child: CustomProgressIndicator(),
-                          ),
-                        )
-                      : ListView.builder(
-                          shrinkWrap: true,
-                          controller: scrollController,
-                          scrollDirection: Axis.vertical,
-                          physics: AlwaysScrollableScrollPhysics(),
-                          itemCount: contactlist.length,
-                          itemBuilder: (context, index) {
-                            return ContactcardList(
-                                number: contactlist[index].number.toString());
-                            //  ListNumber(number: contactlist[index].number.toString());
-                          })),
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  getNumberfromsheet();
+                },
+                child: Container(
+                    margin: EdgeInsets.all(5),
+                    child: contactlist.isEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.all(18.0),
+                            child: Center(
+                              child: CustomProgressIndicator(),
+                            ),
+                          )
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            controller: scrollController,
+                            scrollDirection: Axis.vertical,
+                            physics: AlwaysScrollableScrollPhysics(),
+                            itemCount: contactlist.length,
+                            itemBuilder: (context, index) {
+                              return ContactcardList(
+                                contact: contactlist[index],
+                                //    number: contactlist[index].number.toString()
+                              );
+                              //  ListNumber(number: contactlist[index].number.toString());
+                            })),
+              ),
             ),
             Row(
               children: [
@@ -130,20 +144,17 @@ class _HomeState extends State<Home> {
                     ),
                   ),
                 ),
-
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Container(
                     width: 50,
                     height: 50,
-
                     decoration: BoxDecoration(
                         color: Colors.white60,
-                        border:
-                            Border.all( color: Colors.black12),
-                    borderRadius: BorderRadius.all(Radius.circular(20))),
+                        border: Border.all(color: Colors.black12),
+                        borderRadius: BorderRadius.all(Radius.circular(20))),
                     child: InkWell(
-                      hoverColor: Colors.black12,
+                        hoverColor: Colors.black12,
                         onTap: () {
                           if (en_message_Controller.text.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -151,9 +162,15 @@ class _HomeState extends State<Home> {
                             );
                           } else {
                             // sendDelayedMessages(contactlist,en_message_Controller.text.toString());
-                            //  startSendingMessages();
-                            sendingSms(en_message_Controller.text.toString(),
-                                contactlist);
+                            // //  startSendingMessages();
+                            // sendingSms(en_message_Controller.text.toString(),
+                            //     contactlist);
+                            // List<String> selectedphoneNumbers =
+                            // contactlist.map((contact) => contact.number).toList();
+                            // contactlist= selectedContacts.length as List<Contact>;
+                            sendingSms(
+                                en_message_Controller.text.toString(),
+                                contactlist.toList().where((e)=>e.value).toList().map((ee) => ee.number).toList());
                           }
 
                           // SendMessage();
@@ -199,17 +216,15 @@ class _HomeState extends State<Home> {
   //   }
   // }
 
-  Future<String> sendingSms(String message, List<Contact> contact) async {
-    List<String> phoneNumbers =
-        contact.map((contact) => contact.number).toList();
-    for (Contact contact in contact) {
-      Future.delayed(Duration(seconds: 2));
-      result = await sendSMS(message: message, recipients: phoneNumbers)
-          .catchError((onError) {
-        print(onError);
-      });
-      //return result;
-    }
+  Future<String> sendingSms(String message, List<String> contact) async {
+
+
+    result = await sendSMS(message: message, recipients: contact)
+        .catchError((onError) {
+      print(onError);
+    });
+    //return result;
+    //}
     return result;
 
     //print(result);

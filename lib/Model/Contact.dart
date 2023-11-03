@@ -1,15 +1,12 @@
-
 class Contact {
   String number;
-  Contact({ required this.number});
+  bool value;
 
-  factory Contact.fromJson(dynamic json){
-    return Contact(
-        number:"${json['user_contact']}"
-    );
+  Contact({required this.number, required this.value});
+
+  factory Contact.fromJson(dynamic json) {
+    return Contact(number: "${json['user_contact']}", value: json['check_box']);
   }
 
-  Map toJson()=>{
-    "user_contact":number
-  };
+  Map toJson() => {"user_contact": number, "check_box": value};
 }
