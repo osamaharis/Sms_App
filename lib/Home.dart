@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_sms/flutter_sms.dart';
 import 'package:gap/gap.dart';
 import 'package:http/http.dart' as http;
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:convert' as convert;
 
 import 'package:rxdart/rxdart.dart' as RxDart;
@@ -24,12 +25,12 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   List<Contact> contactlist = [];
-  Set<Contact> selectedContacts = Set<Contact>();
+
   bool _isloaded = true;
   String result = "";
   final scrollController = ScrollController();
   var en_message_Controller = TextEditingController();
-
+  List<String> selectednumbers = [];
   Future<void> getNumberfromsheet() async {
     var rwa = await http.get(Uri.parse(
         "https://script.googleusercontent.com/macros/echo?user_content_key=WuWAuaYlVfPguTwyjta8jGIJhZ-z3XIvzDVzd1AS325-G7JJwgIIlFYvIthZK9Y6II8INpPlkFzZSD3rCUOJmdGCKNpthAMem5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnCljp9ZL91Q6YMVvUbzPAZgMnC91JAbfX-HycAsPz-FZ0DayXmSLGdhJt7xGtGDTAgqR6L0T1gsX3691yxXmxnX9z9ymcaMXCw&lib=MXnoYrom9SgRob9jUQnXiO5GHEo5vm62a"));
@@ -161,19 +162,25 @@ class _HomeState extends State<Home> {
                               SnackBar(content: Text("Enter a Message" ?? "")),
                             );
                           } else {
-                            // sendDelayedMessages(contactlist,en_message_Controller.text.toString());
-                            // //  startSendingMessages();
-                            // sendingSms(en_message_Controller.text.toString(),
-                            //     contactlist);
-                            // List<String> selectedphoneNumbers =
-                            // contactlist.map((contact) => contact.number).toList();
-                            // contactlist= selectedContacts.length as List<Contact>;
-                            sendingSms(
-                                en_message_Controller.text.toString(),
-                                contactlist.toList().where((e)=>e.value).toList().map((ee) => ee.number).toList());
+                             selectednumbers = contactlist
+                                .where((element) => element.value)
+                                .toList()
+                                .map((e) => e.number)
+                                .toList();
+                            if (selectednumbers.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text(
+                                        "Select at least one item to send.")),
+                              );
+                            }
+
+                            else {
+                              requestSmsPermission();
+
+                            }
                           }
 
-                          // SendMessage();
                         },
                         child: Icon(
                           Icons.send_sharp,
@@ -217,9 +224,7 @@ class _HomeState extends State<Home> {
   // }
 
   Future<String> sendingSms(String message, List<String> contact) async {
-
-
-    result = await sendSMS(message: message, recipients: contact)
+    result = await sendSMS(message: message, recipients: contact,sendDirect: true)
         .catchError((onError) {
       print(onError);
     });
@@ -229,28 +234,128 @@ class _HomeState extends State<Home> {
 
     //print(result);
   }
-
-  Future<void> sendDelayedMessages(
-      List<Contact> contacts, String message) async {
-    for (Contact contact in contacts) {
-      await Future.delayed(Duration(seconds: 5)); // Add a delay of 5 seconds
-      // Send the message to the current contact
-      String result =
-          await sendSMS(message: message, recipients: [contact.number]);
-
-      if (result == 'sent') {
-        print('Message sent to ${contact.number}');
-      } else {
-        print('Failed to send message to ${contact.number}');
+  Future<void> requestSmsPermission()async
+  {
+    final PermissionStatus status = await Permission.sms.request();
+    if (status.isGranted) {
+      sendingSms(
+          en_message_Controller.text.toString(),
+          selectednumbers
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(
+                "Sent.")),
+      );
+      en_message_Controller.text="";
+      // You have SMS permissions.
+      // You can now proceed to send SMS messages.
+    } else {
+      // Handle the case where the user denies SMS permissions.
+      if (status.isDenied) {
+        showsAlertDialog(context,"If you dont allow permission you cant send messages to users","Alert","OK","Cancel",0);
       }
     }
   }
+  showsAlertDialog(BuildContext context, String message, String heading,
+      String buttonAcceptTitle, String buttonCancelTitle, int index) {
+    Widget cancelButton = TextButton(
+      child: Text(
+        buttonCancelTitle,
+        style: TextStyle(
+            color: Colors.white,
+            fontSize: plain_text_size.toDouble(),
+            fontWeight: FontWeight.w400),
+      ),
+      style: ButtonStyle(
+          backgroundColor: MaterialStatePropertyAll(theme_color.toColor()),
+          shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+              RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15.0),
+                  side: BorderSide(color: theme_color.toColor())))),
+      onPressed: () {
+        Navigator.pop(context);
+      },
+    );
+    Widget continueButton = TextButton(
+      child: Text(buttonAcceptTitle,
+          style: TextStyle(
+              color: Colors.white,
+              fontSize: plain_text_size.toDouble(),
+              fontWeight: FontWeight.w400)),
+      style: ButtonStyle(
+          backgroundColor: MaterialStatePropertyAll(theme_color.toColor()),
+          shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+              RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15.0),
+                  side: BorderSide(color: theme_color.toColor())))),
+      onPressed: () {
+        requestSmsPermission();
+            }
 
-  void startSendingMessages() {
-    String message = en_message_Controller.text.toString();
-    sendDelayedMessages(contactlist, message);
+    );
+
+    // set up the AlertDialog
+    AlertDialog alert = AlertDialog(
+      contentPadding: EdgeInsets.all(10.0),
+      actionsPadding: EdgeInsets.all(10.0),
+      icon: Icon(
+        Icons.error,
+        size: 50.0,
+        color: Colors.red,
+      ),
+      title: Text(heading),
+      content: Padding(
+        padding: const EdgeInsets.only(left: 10.0, right: 10.0),
+        child: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: heading_text_size.toDouble(),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+      actions: [
+        cancelButton,
+        continueButton,
+      ],
+    );
+
+    // show the dialog
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
+    );
   }
+
+  // Future<void> sendDelayedMessages(
+  //     List<Contact> contacts, String message) async {
+  //   for (Contact contact in contacts) {
+  //     await Future.delayed(Duration(seconds: 5)); // Add a delay of 5 seconds
+  //     // Send the message to the current contact
+  //     String result =
+  //         await sendSMS(message: message, recipients: [contact.number]);
+  //
+  //     if (result == 'sent') {
+  //       print('Message sent to ${contact.number}');
+  //     } else {
+  //       print('Failed to send message to ${contact.number}');
+  //     }
+  //   }
+  // }
+  //
+  // void startSendingMessages() {
+  //   String message = en_message_Controller.text.toString();
+  //   sendDelayedMessages(contactlist, message);
+  // }
 }
+
+
+
 
 class ListNumber extends StatelessWidget {
   String number;

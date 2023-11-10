@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'Flutter Demo',
+        title: 'MY SMS',
         theme: CustomTheme().main_theme.copyWith(
               radioTheme: Theme.of(context).radioTheme,
               dividerColor: Colors.transparent,
